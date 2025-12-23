@@ -75,14 +75,12 @@ function sseWrite(res: ServerResponse, data: unknown, event?: string) {
 }
 
 function attachSse(req: IncomingMessage, res: ServerResponse) {
-  // Hard requirements:
-  // - GET /api requires Accept: text/event-stream and MCP-Session-Id
-  // - otherwise return 406 quickly (no hanging)
-
+  // If the client is not attempting to attach SSE (e.g., scanners), respond quickly with JSON.
+  // SSE attach behavior remains unchanged when Accept includes text/event-stream.
   if (!acceptsEventStream(req)) {
-    sendJson(res, 406, {
-      ok: false,
-      error: 'GET /api requires Accept: text/event-stream'
+    sendJson(res, 200, {
+      ok: true,
+      note: 'SSE endpoint. Send Accept: text/event-stream and MCP-Session-Id.'
     });
     return;
   }

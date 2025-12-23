@@ -11,6 +11,13 @@ const app = express();
 // IMPORTANT: Do not add body-parsing middleware. The MCP handler reads the
 // raw request stream itself.
 
+// OpenAI domain verification (exact path + exact token, no newline)
+app.get('/.well-known/openai-apps-challenge', (_req, res) => {
+  res.status(200);
+  res.setHeader('Content-Type', 'text/plain');
+  res.send('fHczvLieSmC7hbrDAUCo3zlhoLattESKaGAK2qWtoeU');
+});
+
 app.all('/api', (req, res) => {
   // Express req/res are compatible with Node IncomingMessage/ServerResponse
   // types used by the existing handler.

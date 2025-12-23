@@ -180,9 +180,3 @@ npm run dev
 InvoiceChaser is currently under review for the ChatGPT Apps Directory.
 
 Monetization options and commercial offerings may be introduced in a future release.
-
-**Suggested pricing tiers (guidance)**
-
-- $9/mo solo
-- $19/mo agency
-- $49/mo team

@@ -175,6 +175,12 @@ npm run dev
 - Reminder scheduling (send nudges on a cadence)
 - Team mode (shared templates + roles)
 
+## Status
+
+InvoiceChaser is currently under review for the ChatGPT Apps Directory.
+
+Monetization options and commercial offerings may be introduced in a future release.
+
 ## Get updates / Contact
 
 - X: @yourhandle

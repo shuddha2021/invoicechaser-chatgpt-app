@@ -1,0 +1,12 @@
+{
+  "name": "invoicechaser",
+  "private": true,
+  "workspaces": [
+    "apps/*"
+  ],
+  "scripts": {
+    "build": "npm run build -w @invoicechaser/mcp-server && npm run build -w @invoicechaser/web",
+    "dev": "npm run dev -w @invoicechaser/web",
+    "typecheck": "npm run typecheck -w @invoicechaser/mcp-server && npm run typecheck -w @invoicechaser/web"
+  }
+}

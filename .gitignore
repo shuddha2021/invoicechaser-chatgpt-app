@@ -4,6 +4,7 @@ node_modules/
 # builds
 /dist/
 /apps/web/dist/
+/apps/mcp-server/dist/
 
 # local env
 .env

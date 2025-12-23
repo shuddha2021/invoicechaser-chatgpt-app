@@ -1,90 +1,107 @@
 # InvoiceChaser
 
-Monorepo with:
+Turn invoice text into ready-to-send payment reminder emails (friendly → firm).
 
-- `apps/mcp-server`: Vercel-deployable MCP server (Streamable HTTP + SSE) under `/api`
-- `apps/web`: minimal Vite demo UI
+## What it does
 
-## Quick start (local)
+- Paste invoice text (or a messy email thread) and get a clean summary + extracted fields.
+- Generates 3 complete follow-up emails (friendly, neutral, firm) you can send today.
+- Suggests a simple follow-up schedule (what to send, when).
+- Flags common red flags (missing invoice number, due date, payment terms, etc.).
 
-```bash
-npm install
+## Who it’s for
 
-# TypeScript build/typecheck (both workspaces)
-npm run build
+- Freelancers who need to chase payments without sounding awkward.
+- Agencies managing multiple client invoices.
+- Small business finance/admin teams.
+- Founders doing everything themselves.
 
-# Run the web demo locally
-npm run dev
+## How to use in ChatGPT
+
+1) Deploy the MCP server (Vercel recommended, Render supported).
+2) Copy your MCP Server URL in this exact format:
+
+   `https://<your-mcp-domain>/api`
+
+3) In ChatGPT → **Connectors / Tools** → add a new MCP server.
+4) Paste the URL and finish connector setup.
+5) In chat, paste your invoice text and ask for follow-ups.
+
+## Example: input → output
+
+**Input invoice text**
+
+```text
+Acme Design Studio
+
+INVOICE #INV-1042
+Date: 2025-11-15
+Bill To: Northwind Ventures
+
+Total Due: USD 2,450.00
+Payment terms: Net 15
+Due Date: 2025-11-30
+
+Services:
+- Website homepage refresh (design + copy)
+- QA + handoff
+
+Please pay via bank transfer.
 ```
 
-> Tip: For local Vercel-function testing, you can install Vercel CLI and run `npm run dev -w @invoicechaser/mcp-server`.
+**Output (high-level)**
 
-## Deploy to Vercel (TWO projects)
+- Summary bullets (what was found + what’s missing)
+- Extracted fields (vendor, amount, invoice #, due date, days overdue, payment terms)
+- 3 follow-up emails: friendly → neutral → firm
+- A recommended next-step schedule + red flags
 
-You will create two separate Vercel projects from this same repo.
+## Tools
 
-### Project 1: InvoiceChaser MCP server
+### `invoicechaser_prepare`
 
-- **Project Name**: `invoicechaser-mcp-server` (or similar)
-- **Root Directory**: `apps/mcp-server`
-- **Framework Preset**: Other
-- **Build Command**: `npm run build`
-- **Output Directory**: **leave blank** (do NOT set this)
-- **Install Command**: default (`npm install`)
+Input:
 
-MCP URL to paste into ChatGPT must be:
+```json
+{
+  "invoiceText": "string",
+  "currency": "string (optional)",
+  "tone": "friendly | neutral | firm (optional)",
+  "today": "YYYY-MM-DD (optional)"
+}
+```
 
-- `https://<mcp-domain>/api`
+Returns JSON with:
 
-> Common mistake: using the root URL (`https://<mcp-domain>`) instead of `.../api`.
+- `summary`: 3 bullets
+- `extracted`: `{ vendor, amount, currency, invoiceNumber, dueDate, daysOverdue, paymentTerms }`
+- `followUpEmails`: `{ friendly, neutral, firm }` (each is a complete email)
+- `nextSteps`: ordered list
+- `redFlags`: list
 
-### Project 2: InvoiceChaser Web demo
+## Privacy & Safety
 
-- **Project Name**: `invoicechaser-web` (or similar)
-- **Root Directory**: `apps/web`
-- **Framework Preset**: Vite
-- **Build Command**: `npm run build`
-- **Output Directory**: `dist`
+- Deterministic processing (no randomness).
+- No external API calls.
+- No database/storage: the server does not persist invoice contents.
+- You control what you paste into ChatGPT and what gets sent to your server.
 
-## MCP server endpoints
+## Production notes
 
-### Health
+- Render free tier may cold-start after inactivity, causing slower first responses.
+- Recommended for reliability: use a paid instance / always-on service.
 
-- `GET /api/health` returns `{"ok":true}`
-
-### MCP POST (Streamable HTTP)
-
-- `POST /api` accepts JSON-RPC style MCP messages
-- Important: **POST does NOT require** `Accept: text/event-stream` (it works with `application/json`, `*/*`, or no `Accept`)
-
-### MCP GET (SSE attach)
-
-- `GET /api` attaches an SSE stream
-- Hard requirements:
-  - must include `Accept: text/event-stream`
-  - must include `MCP-Session-Id`
-- Otherwise it returns `406` quickly (no hanging)
-
-## Curl tests
+## Quick verification (curl)
 
 Replace `<mcp-domain>` with your deployed MCP server domain.
 
-### (1) Health
+### Health
 
 ```bash
 curl -i https://<mcp-domain>/api/health
 ```
 
-### (2) POST /api tools/list with Accept: application/json
-
-```bash
-curl -i https://<mcp-domain>/api \
-  -H 'Content-Type: application/json' \
-  -H 'Accept: application/json' \
-  -d '{"jsonrpc":"2.0","id":"1","method":"tools/list","params":{}}'
-```
-
-### (2b) POST /api initialize includes protocolVersion
+### Initialize (must include protocolVersion)
 
 ```bash
 curl -i https://<mcp-domain>/api \
@@ -93,46 +110,133 @@ curl -i https://<mcp-domain>/api \
   -d '{"jsonrpc":"2.0","id":"init","method":"initialize","params":{}}'
 ```
 
-### (3) GET /api without SSE accept returns 406 quickly
+### tools/list
 
 ```bash
-curl -i https://<mcp-domain>/api
+curl -i https://<mcp-domain>/api \
+  -H 'Content-Type: application/json' \
+  -H 'Accept: application/json' \
+  -d '{"jsonrpc":"2.0","id":"1","method":"tools/list","params":{}}'
 ```
 
-## Common pitfalls (production)
+## Deploy
 
-- **Vercel Output Directory error**: For the MCP server project, the **Output Directory must be blank**.
-- **Wrong MCP URL**: The MCP server base URL is `https://<mcp-domain>/api` (NOT the root domain).
-- **406 Not Acceptable**: Only `GET /api` is strict about `Accept: text/event-stream` (by design). `POST /api` is not.
-- **SSE hanging/timeouts**: `GET /api` returns `406` immediately if `MCP-Session-Id` is missing. When valid, it sets `Cache-Control: no-cache, no-transform` and sends an initial event quickly plus heartbeats.
+This repo is a monorepo:
 
-## GitHub repo + push instructions
+- MCP server: `apps/mcp-server`
+- Web demo: `apps/web`
 
-From repo root:
+### Vercel (recommended): TWO projects
 
-```bash
-git init
-git add -A
-git commit -m "Initial InvoiceChaser scaffold"
+Create two separate Vercel projects from the same repo.
 
-# Create a new GitHub repo, then:
-git branch -M main
-git remote add origin https://github.com/<you>/invoicechaser.git
-git push -u origin main
-```
+**Project 1: InvoiceChaser MCP server**
 
-## Exact Vercel projects to create
+- Root Directory: `apps/mcp-server`
+- Framework Preset: Other
+- Build Command: `npm run build`
+- Output Directory: **leave blank** (IMPORTANT)
 
-1) **InvoiceChaser MCP server project**
-   - Root Directory: `apps/mcp-server`
-   - Build Command: `npm run build`
-   - Output Directory: **blank**
-
-2) **InvoiceChaser web project**
-   - Root Directory: `apps/web`
-   - Build Command: `npm run build`
-   - Output Directory: `dist`
-
-## Exact MCP URL to paste into ChatGPT
+MCP URL to paste into ChatGPT:
 
 - `https://<mcp-domain>/api`
+
+**Project 2: InvoiceChaser web demo**
+
+- Root Directory: `apps/web`
+- Framework Preset: Vite
+- Build Command: `npm run build`
+- Output Directory: `dist`
+
+### Render (supported)
+
+Render runs the Express entrypoint.
+
+- Root Directory: repo root (or configure as needed)
+- Build Command: `npm run build -w @invoicechaser/mcp-server`
+- Start Command: `npm run start -w @invoicechaser/mcp-server`
+- Must provide `PORT` (Render sets this automatically)
+
+## Local development
+
+```bash
+npm install
+npm run build
+
+# Web demo
+npm run dev
+```
+
+## Roadmap
+
+- Escalation ladder tool (polite → firm → final notice)
+- Template library per industry
+- CSV batch mode (multiple invoices)
+- Reminder scheduling (send nudges on a cadence)
+- Team mode (shared templates + roles)
+
+## Get updates / Contact
+
+- X: @yourhandle
+- Email: you@example.com
+
+---
+
+## Copy for App Store
+
+**App Name**
+
+InvoiceChaser
+
+**App Description (short)**
+
+Turn invoice text into ready-to-send payment reminder emails — from friendly to firm.
+
+**App Description (long)**
+
+InvoiceChaser helps you follow up on unpaid invoices with less stress and more professionalism. Paste invoice text and get a clear summary, extracted details, and three complete follow-up emails (friendly, neutral, firm), plus a suggested schedule and red flags. Built to be deterministic, private-by-default, and easy to deploy.
+
+**3 example prompts**
+
+1) “Here’s an invoice — generate a friendly reminder email and a 2-week follow-up schedule.”
+2) “Extract the invoice number, due date, amount, and draft a firm follow-up.”
+3) “Rewrite this follow-up message to be neutral and professional.”
+
+**3 keywords**
+
+- invoicing
+- collections
+- email templates
+
+---
+
+## Gumroad listing copy
+
+**Title**
+
+InvoiceChaser — Payment Reminder Emails (Friendly → Firm)
+
+**Pitch**
+
+Stop staring at overdue invoices. InvoiceChaser turns messy invoice text into clear next steps and ready-to-send emails so you can get paid faster without sounding awkward.
+
+**What you get**
+
+- A deployable MCP server (Vercel/Render)
+- Deterministic tool: `invoicechaser_prepare`
+- Web demo for quick testing
+- Documentation + curl verification commands
+
+**Who it’s for**
+
+Freelancers, agencies, small businesses, founders, and anyone who needs professional payment follow-ups.
+
+**Refund note**
+
+[Add your refund policy here]
+
+**Suggested pricing tiers (guidance)**
+
+- $9/mo solo
+- $19/mo agency
+- $49/mo team

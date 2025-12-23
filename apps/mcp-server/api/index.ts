@@ -305,6 +305,11 @@ function mcpToolsListResult() {
         name: 'invoicechaser_prepare',
         description:
           'Extracts key invoice fields and prepares friendly/neutral/firm follow-up emails (deterministic, no network calls).',
+        annotations: {
+          readOnlyHint: true,
+          openWorldHint: false,
+          destructiveHint: false
+        },
         inputSchema: {
           type: 'object',
           properties: {

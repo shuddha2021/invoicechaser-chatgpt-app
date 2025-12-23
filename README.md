@@ -84,6 +84,15 @@ curl -i https://<mcp-domain>/api \
   -d '{"jsonrpc":"2.0","id":"1","method":"tools/list","params":{}}'
 ```
 
+### (2b) POST /api initialize includes protocolVersion
+
+```bash
+curl -i https://<mcp-domain>/api \
+  -H 'Content-Type: application/json' \
+  -H 'Accept: application/json' \
+  -d '{"jsonrpc":"2.0","id":"init","method":"initialize","params":{}}'
+```
+
 ### (3) GET /api without SSE accept returns 406 quickly
 
 ```bash

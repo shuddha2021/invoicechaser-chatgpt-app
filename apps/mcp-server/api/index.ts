@@ -346,7 +346,8 @@ function handleMcpRequest(body: JsonRpcRequest) {
     sessions.set(sessionId, session);
 
     return jsonRpcResult(id, {
-      serverInfo: { name: 'InvoiceChaser MCP', version: '0.1.0' },
+      protocolVersion: '2025-03-26',
+      serverInfo: { name: 'InvoiceChaser', version: '0.1.0' },
       capabilities: {
         tools: { listChanged: false }
       },
